@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mutation-webhook
+  labels:
+    app: mutation-webhook
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: mutation-webhook
+  template:
+    metadata:
+      labels:
+        app: mutation-webhook
+    spec:
+      containers:
+        - name: webhook
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: 443
+          volumeMounts:
+            - name: webhook-tls
+              mountPath: "/etc/certs"
+              readOnly: true
+      volumes:
+        - name: webhook-tls
+          secret:
+            secretName: mutation-webhook-tls

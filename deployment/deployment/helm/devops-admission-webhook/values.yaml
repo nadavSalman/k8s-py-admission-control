@@ -1,0 +1,33 @@
+replicaCount: 1
+
+
+image:
+  repository: myregistry/mutation-webhook
+  tag: latest
+  pullPolicy: IfNotPresent
+
+
+service:
+  name: mutation-webhook
+  type: ClusterIP
+  port: 443
+
+
+rbac:
+  create: true
+  serviceAccountName: mutation-webhook
+
+
+webhook:
+  name: mutation-webhook
+  namespace: default
+  failurePolicy: Ignore
+  matchPolicy: Equivalent
+  objectSelector: {}
+  timeoutSeconds: 5
+  sideEffects: None
+  rules:
+    - apiGroups: [""]
+      apiVersions: ["v1"]
+      resources: ["pods"]
+      operations: ["CREATE"]

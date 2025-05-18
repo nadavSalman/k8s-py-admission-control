@@ -1,0 +1,81 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: py-admission-webhook-deployment
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: py-admission-webhook
+  template:
+    metadata:
+      labels:
+        app: py-admission-webhook
+    spec:
+      containers:
+        - name: admission-webhook
+          image: 342930366839.dkr.ecr.eu-west-1.amazonaws.com/py-admission-webhook:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 443
+          resources:
+            limits:
+              memory: "128Mi"
+              cpu: "100m"
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+          volumeMounts:
+            - name: webhook-certs
+              mountPath: /cert
+              readOnly: true
+      volumes:
+        - name: webhook-certs
+          secret:
+            secretName: admission-webhook-secret
+            items:
+              - key: tls.crt
+                path: cert.pem
+              - key: tls.key
+                path: private.key
+      automountServiceAccountToken: true      
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: py-admission-webhook
+spec:
+  selector:
+    app: py-admission-webhook
+  ports:
+    - protocol: TCP
+      port: 443   # The service port
+      targetPort: 443   # The container port
+  type: ClusterIP  # Exposes the service internally
+
+
+---
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: namespace-read
+rules:
+- apiGroups: [""]
+  resources: ["namespaces"]
+  verbs: ["get"]
+
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: namespace-read
+subjects:
+- kind: ServiceAccount
+  name: default
+  namespace: default
+roleRef:
+  kind: ClusterRole
+  name: namespace-read
+  apiGroup: rbac.authorization.k8s.io
